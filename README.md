@@ -1,5 +1,5 @@
 
-#Annonomus Chat Application 🚀
+## Annonomus Chat Application 🚀
 
 A real-time chat application with file upload capabilities, built using Flask, Socket.IO, jQuery, and Tailwind CSS.
 
