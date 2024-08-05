@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages</title>
+    <script src="{{ url_for('static', filename='socket.io.min.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='tailwind.min.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='jquery.js') }}" defer></script>
+    <style>
+        .message-content {
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            max-height: none;
+        }
+
+        .file-card {
+            display: flex;
+            align-items: center;
+            border-radius: 20px;
+            margin: 1rem;
+        }
+
+        img,
+        video {
+            max-width: 300px;
+            max-height: 300px;
+            object-fit: cover;
+            margin-right: 1rem;
+            border-radius: 10px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 100px;
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+        }
+
+        .video-controls button {
+            background: transparent;
+            border: none;
+            color: transparent;
+            font-size: 12rem;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        textarea{
+            scroll-behavior: smooth;
+        }
+    </style>
+
+</head>
+
+<body class="bg-black text-white dark:bg-black dark:text-white">
+
+    <div class="flex flex-col h-screen text-white">
+        <!-- Profile Header -->
+        <div class="flex fixed w-full h-19 bg-zinc-800 text-white justify-between pl-4 pr-4 items-center py-2" id="create_or_join_room">
+            <button class="bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center p-2" id="createPrivate">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Create
+            </button>
+            <div class="flex-1 px-2">
+                <h1 class="text-xl font-bold flex items-center justify-center" id="currentRoom">Public Chat</h1>
+            </div>
+            <button class="bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center p-2" id="joinPrivate">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Join
+            </button>
+        </div>
+        <div class="flex fixed w-full h-19 bg-zinc-800 text-white justify-between p-2 items-center" id="leave">
+            <h1 class="text-2xl font-bold" id="currentRoom">Private Chat</h1>
+            <button class="bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center p-2" id="leaveRoom">
+                <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6L4 12m0 0l6 6m-6-6h16" />
+                </svg>
+                Leave Room 
+            </button>
+        </div>
+
+        <!-- Messages Section -->
+        <div id="messages-container" class="flex-1 overflow-y-auto p-4 py-10 space-y-4 mt-5">
+            <ul id="messages" class="flex flex-col space-y-1 max-w-screen"></ul>
+        </div>
+
+
+                <div id="fileCardContainer" class="flex items-center space-x-4 mx-2">
+        	<div id="uploadProgress" class="hidden text-center text-white ml-4">Uploading...</div>
+        	<input type="range" value="" id="load" class="hidden w-screen " disabled>
+        
+        </div>
+        <div class="p-2 mt-1 flex items-center bg-transparent">
+            <button class="absolute fixed" id="sendFile">
+                <svg class="w-8 h-8 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M10.6875 3.75C8.96439 3.75 7.5 5.23565 7.5 7.15385L7.5 15.4615C7.5 18.1444 9.55201 20.25 12 20.25C14.448 20.25 16.5 18.1444 16.5 15.4615V7.15385H18V15.4615C18 18.8963 15.351 21.75 12 21.75C8.649 21.75 6 18.8963 6 15.4615L6 7.15385C6 4.48383 8.06137 2.25 10.6875 2.25C13.3136 2.25 15.375 4.48383 15.375 7.15385V15.4615C15.375 17.3669 13.9013 18.9808 12 18.9808C10.0987 18.9808 8.625 17.3669 8.625 15.4615V7.15385H10.125V15.4615C10.125 16.615 11.0018 17.4808 12 17.4808C12.9982 17.4808 13.875 16.615 13.875 15.4615V7.15385C13.875 5.23565 12.4106 3.75 10.6875 3.75Z" fill="#FFFFFF" />
+                </svg>
+            </button>
+
+            <input type="file" id="fileInput" class="hidden" />
+            <textarea placeholder="type your message...." class="flex-1 bg-zinc-600 text-white p-3 rounded-lg resize-none overflow-y-auto max-h-24 focus:outline-none pl-7 pr-10" rows="1" id="messageinput"></textarea>
+            <button type="submit" id="send_message" class="absolute right-1">
+                <svg viewBox="0 0 24 24" class="w-10 h-10 bg-black rounded-full m-1 p-1" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20.7639 12H10.0556M3 8.00003H5.5M4 12H5.5M4.5 16H5.5M9.96153 12.4896L9.07002 15.4486C8.73252 16.5688 8.56376 17.1289 8.70734 17.4633C8.83199 17.7537 9.08656 17.9681 9.39391 18.0415C9.74792 18.1261 10.2711 17.8645 11.3175 17.3413L19.1378 13.4311C20.059 12.9705 20.5197 12.7402 20.6675 12.4285C20.7961 12.1573 20.7961 11.8427 20.6675 11.5715C20.5197 11.2598 20.059 11.0295 19.1378 10.5689L11.3068 6.65342C10.2633 6.13168 9.74156 5.87081 9.38789 5.95502C9.0808 6.02815 8.82627 6.24198 8.70128 6.53184C8.55731 6.86569 8.72427 7.42461 9.05819 8.54246L9.96261 11.5701C10.0137 11.7411 10.0392 11.8266 10.0493 11.9137C10.0583 11.991 10.0582 12.069 10.049 12.1463C10.0387 12.2334 10.013 12.3188 9.96153 12.4896Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</body>
+
+</html>
